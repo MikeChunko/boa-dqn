@@ -1,6 +1,6 @@
 # Implementation of Snake in pygame
 import pygame as pyg
-import random
+from random import randrange
 
 
 class Boa:
@@ -26,14 +26,15 @@ class Boa:
         self.score = 0
         self.gameover = False
         self.d_x, self.d_y = 0, -self.size_y
+        self.dir = 2  # 0 for left, 1 for right, 2 for up, 3 for down
 
 
     def gen_food(self):
         # Generate new coords until one doesn't cause a collision
         while True:
             x, y = (
-                random.randrange(self.size_x, self.screen_x - self.size_x, 10),
-                random.randrange(self.size_y, self.screen_y - self.size_y, 10),
+                randrange(self.size_x, self.screen_x - self.size_x, 10),
+                randrange(self.size_y, self.screen_y - self.size_y, 10),
             )
             sentinel = True
             for old_x, old_y in self.snake:
@@ -58,12 +59,13 @@ class Boa:
             pyg.draw.rect(self.screen, self.blue, [self.screen_x - self.size_x, i, self.size_x, self.size_y])
 
 
-    # Return 3 tuples, each holding a boolean value in the order (Left, Right, Up, Down)
-    # First tuple says if there is a border adjacent to the snake head in that direction
-    # Second tuple says if there is a segment adjacent to the snake head in that direction
-    # Third tuple says if there is food in that direction
+    # Return two tuples
+    # The first holds boolean values for whether or not there is immediate danger to the left, forward, and right
+    # The second holds boolean values for whether or not there is food to the left, forward, and right
     def get_features(self):
-        b_l = b_r = b_u = b_d = s_l = s_r = s_u = s_d = f_u = f_l = f_r = f_d = False
+        b_l = b_r = b_u = b_d = f_u = f_l = f_r = f_d = False
+        danger_forward = danger_left = danger_right = False
+        food_forward = food_left = food_right = False
         x, y = self.snake[-1]
 
         # Border
@@ -80,14 +82,14 @@ class Boa:
         # Segments
         for x_, y_ in self.snake[:-1]:
             if x_ + self.size_x == x:
-                s_l = True
+                b_l = True
             elif x_ - self.size_x == x:
-                s_r = True
+                b_r = True
 
             if y_ + self.size_y == y:
-                s_u = True
+                b_u = True
             elif y_ - self.size_y == y:
-                s_d = True
+                b_d = True
 
         # Food
         if self.food_x > x:
@@ -100,7 +102,21 @@ class Boa:
         elif self.food_y < y:
             f_u = True
 
-        return (b_l, b_r, b_u, b_d), (s_l, s_r, s_u, s_d), (f_l, f_r, f_u, f_d)
+        # Change to left/forward/right
+        if self.dir == 0:
+            danger_left, danger_forward, danger_right = b_d, b_l, b_u
+            food_left, food_forward, food_right = f_d, f_l, f_u
+        elif self.dir == 1:
+            danger_left, danger_forward, danger_right = b_u, b_r, b_d
+            food_left, food_forward, food_right = f_u, f_r, f_d
+        elif self.dir == 2:
+            danger_left, danger_forward, danger_right = b_l, b_u, b_r
+            food_left, food_forward, food_right = f_l, f_u, f_r
+        else:
+            danger_left, danger_forward, danger_right = b_r, b_d, b_l
+            food_left, food_forward, food_right = f_r, f_d, f_l
+
+        return (danger_left, danger_forward, danger_right), (food_left, food_forward, food_right)
 
 
     def get_keyboard_input(self):
@@ -120,24 +136,44 @@ class Boa:
                     self.get_input(3)
 
 
+    def get_manual_input(self, input):
+        if input == 1:  # Forward
+            self.get_input(self.dir)
+        elif input == 0:  # Left
+            if self.dir <= 1:
+                self.get_input(3 - self.dir)
+            else:
+                self.get_input(self.dir - 2)
+        else:  # Right
+            if self.dir <= 1:
+                self.get_input(self.dir + 2)
+            else:
+                self.get_input(3 - self.dir)
+
+
     def get_input(self, input):
-        if input == 0 and self.d_x <= 0:
+        if input == 0 and self.d_x <= 0:  # Left
             self.d_x, self.d_y = -self.size_x, 0
-        elif input == 1 and self.d_x >= 0:
+            self.dir = 0
+        elif input == 1 and self.d_x >= 0:  # Right
             self.d_x, self.d_y = self.size_x, 0
-        elif input == 2 and self.d_y <= 0:
+            self.dir = 1
+        elif input == 2 and self.d_y <= 0:  # Up
             self.d_x, self.d_y = 0, -self.size_y
-        elif input == 3 and self.d_y >= 0:
+            self.dir = 2
+        elif input == 3 and self.d_y >= 0:  # Down
             self.d_x, self.d_y = 0, self.size_y
+            self.dir = 3
 
 
-    # -1 for keyboard input, 0 for left, 1 for right, 2 for up, 3 for down
-    def step(self, tick=15, input=-1):
+    # input: -1 for keyboard input, 0 for left, 1 for forward, 2 for right
+    # difficulty: 0 for no score decrease from moving, 1 for yes
+    def step(self, tick=15, input=-1, difficulty=0):
         # Handle actions
         if input == -1:
             self.get_keyboard_input()
         else:
-            self.get_input(input)
+            self.get_manual_input(input)
 
         # New segment position
         x, y = self.snake[-1]
@@ -161,7 +197,7 @@ class Boa:
             self.eaten = False
             self.score += 100
         else:
-            if self.score > 0:
+            if difficulty == True and self.score > 0:
                 self.score -= 1
             self.snake.pop(0)
 
@@ -170,12 +206,14 @@ class Boa:
         textsurface = self.font.render("Score: {}".format(self.score), False, (255, 255, 255))
         self.screen.blit(textsurface, (0, 0))
 
+        print(self.get_features())
+
         pyg.display.update()
         self.clock.tick(tick)
 
 
 if __name__ == "__main__":
-    tick = 15
+    tick = .5
     while True:
         game = Boa()
         while not game.gameover:
