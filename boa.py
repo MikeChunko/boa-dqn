@@ -1,10 +1,9 @@
 # Implementation of Snake in pygame
-import pygame as pyg
-from random import randrange, randint
-import matplotlib.pyplot as plt
-from boa_nn import Agent
-from keras.utils import to_categorical
 import numpy as np
+import pygame as pyg
+from boa_nn import Agent
+from random import randrange, randint
+from keras.utils import to_categorical
 
 
 def define_parameters():
@@ -141,39 +140,22 @@ class Boa:
         return [danger_forward, danger_right, danger_left, dir_left, dir_right, dir_up, dir_down, food_forward, food_left, food_right, food_behind]
 
 
-    def get_keyboard_input(self):
-        for event in pyg.event.get():
-            if event.type == pyg.QUIT:
-                pyg.quit()
-                quit()
-            # Movement keys
-            if event.type == pyg.KEYDOWN:
-                if (event.key == pyg.K_LEFT or event.key == pyg.K_a):
-                    self.get_input(0)
-                elif (event.key == pyg.K_RIGHT or event.key == pyg.K_d):
-                    self.get_input(1)
-                elif (event.key == pyg.K_UP or event.key == pyg.K_w):
-                    self.get_input(2)
-                elif (event.key == pyg.K_DOWN or event.key == pyg.K_s):
-                    self.get_input(3)
-
-
-    def get_manual_input(self, input):
+    def process_manual_input(self, input):
         if input == 1:  # Forward
-            self.get_input(self.dir)
+            self.process_input(self.dir)
         elif input == 0:  # Left
             if self.dir <= 1:
-                self.get_input(3 - self.dir)
+                self.process_input(3 - self.dir)
             else:
-                self.get_input(self.dir - 2)
+                self.process_input(self.dir - 2)
         else:  # Right
             if self.dir <= 1:
-                self.get_input(self.dir + 2)
+                self.process_input(self.dir + 2)
             else:
-                self.get_input(3 - self.dir)
+                self.process_input(3 - self.dir)
 
 
-    def get_input(self, input):
+    def process_input(self, input):
         if input == 0 and self.d_x <= 0:  # Left
             self.d_x, self.d_y = -self.size_x, 0
             self.dir = 0
@@ -189,14 +171,10 @@ class Boa:
 
 
     # input: -1 for keyboard input, 0 for left, 1 for forward, 2 for right
-    def step(self, tick=15, input=-1):
-        self.delta_score = 0
-
+    def step(self, tick=15, input=1):
         # Handle actions
-        if input == -1:
-            self.get_keyboard_input()
-        else:
-            self.get_manual_input(input)
+        self.process_manual_input(input)
+        self.delta_score = 0
 
         # New segment position
         x, y = self.snake[-1]
@@ -207,13 +185,11 @@ class Boa:
             self.eaten = True
         elif new_x == 0 or new_x == self.screen_x - self.size_x or new_y == 0 or new_y == self.screen_y - self.size_y:  # Border
             self.gameover = True
-            self.score -= 10
             self.delta_score -= 10
         if self.d_x != 0 or self.d_y != 0:
             for x, y in self.snake:  # Snake
                 if new_x == x and new_y == y:
                     self.gameover = True
-                    self.score -= 10
                     self.delta_score -= 10
 
         self.snake.append((new_x, new_y))
@@ -222,10 +198,11 @@ class Boa:
         if self.eaten:
             self.gen_food()
             self.eaten = False
-            self.score += 10
             self.delta_score += 10
         else:
             self.snake.pop(0)
+
+        self.score += self.delta_score
 
         # Draw
         self.display()
@@ -247,21 +224,22 @@ if __name__ == "__main__":
     while num_games < params["episodes"]:
         game = Boa()
         num_steps = 0
-        while not game.gameover and num_steps < 500:
+        max_steps = 1000  # Prevent infinite looping with the game
+
+        while not game.gameover and num_steps < max_steps:
             if not params["train"]:
                 agent.epsilon = 0
             else:
-                # agent.epsilon is set to give randomness to actions
+                # Epsilon determines randomness factor
                 agent.epsilon = 1 - (num_games * params["epsilon_decay_linear"])
 
             num_steps += 1
             state_old = np.asarray(game.get_features())
 
-            if randint(0, 1) < agent.epsilon:
+            if randint(0, 1) < agent.epsilon:  # Random action
                 final_input = randint(0, 2)
                 final_move = to_categorical(randint(0, 2), num_classes=3)
-            else:
-                # predict action based on the old state
+            else:  # Predict action based on nn
                 prediction = agent.model.predict(state_old.reshape((1, 11)))
                 final_move = to_categorical(np.argmax(prediction[0]), num_classes=3)
 
@@ -276,17 +254,21 @@ if __name__ == "__main__":
             state_new = np.asarray(game.get_features())
             reward = game.delta_score
 
+            if reward > 0:
+                max_steps += 500
+
             if params["train"]:
-                # train short memory base on the new action and state
+                # Train short memory based on the new action and state
                 agent.train_short_memory(state_old, final_move, reward, state_new, game.gameover)
-                # store the new data into a long term memory
+                # Store into long term memory
                 agent.remember(state_old, final_move, reward, state_new, game.gameover)
 
         num_games += 1
         print("Game: {}, Score: {}".format(num_games, game.score))
 
         if params["train"]:
-            agent.replay_new(agent.memory, params["batch_size"])
+            agent.replay_new(params["batch_size"])
 
+    # Save the calculated weights for later use
     if params["train"]:
         agent.model.save_weights(params["weights_path"])

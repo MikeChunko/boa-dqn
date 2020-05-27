@@ -3,8 +3,6 @@ from keras.models import Sequential
 from keras.layers.core import Dense, Dropout
 import random
 import numpy as np
-import pandas as pd
-from operator import add
 import collections
 
 
@@ -12,18 +10,11 @@ class Agent(object):
     def __init__(self, params):
         self.reward = 0
         self.gamma = 0.9
-        self.dataframe = pd.DataFrame()
-        self.short_memory = np.array([])
-        self.agent_target = 1
-        self.agent_predict = 0
         self.learning_rate = params["learning_rate"]
-        self.epsilon = 1
-        self.actual = []
         self.first_layer = params["first_layer_size"]
         self.second_layer = params["second_layer_size"]
         self.third_layer = params["third_layer_size"]
         self.memory = collections.deque(maxlen=params["memory_size"])
-        self.weights = params["weights_path"]
         self.model = self.network()
 
     def network(self):
@@ -39,11 +30,11 @@ class Agent(object):
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
 
-    def replay_new(self, memory, batch_size):
-        if len(memory) > batch_size:
-            minibatch = random.sample(memory, batch_size)
+    def replay_new(self, batch_size):
+        if len(self.memory) > batch_size:
+            minibatch = random.sample(self.memory, batch_size)
         else:
-            minibatch = memory
+            minibatch = self.memory
         for state, action, reward, next_state, done in minibatch:
             target = reward
             if not done:
