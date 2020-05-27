@@ -35,9 +35,9 @@ class Boa:
         self.clock = pyg.time.Clock()
 
         # List containing all segments of the snake
-        self.snake = [(screen_x // 2, screen_y // 2),
-                      (screen_x // 2, screen_y // 2 - self.size_y),
-                      (screen_x // 2, screen_y // 2 - (2 * self.size_y))]
+        self.snake = [(screen_x // 2, screen_y // 2)
+        ]#(screen_x // 2, screen_y // 2 - self.size_y),
+                  #    (screen_x // 2, screen_y // 2 - (2 * self.size_y))]
 
         self.gen_food()
         self.eaten = False
@@ -135,13 +135,13 @@ class Boa:
         elif self.dir == 2:
             danger_left, danger_forward, danger_right = b_l, b_u, b_r
             food_left, food_forward, food_right, food_behind = f_l, f_u, f_r, f_d
-            dir_up = 2
+            dir_up = 1
         else:
             danger_left, danger_forward, danger_right = b_r, b_d, b_l
             food_left, food_forward, food_right, food_behind = f_r, f_d, f_l, f_u
-            dir_down = 3
+            dir_down = 1
 
-        return [danger_forward, danger_right, danger_left, dir_left, dir_right, dir_up, dir_down, food_left, food_right, food_forward, food_behind]
+        return [danger_forward, danger_right, danger_left, dir_left, dir_right, dir_up, dir_down, f_l, f_r, f_u, f_d]
 
 
     def get_keyboard_input(self):
@@ -246,42 +246,45 @@ class Boa:
 if __name__ == "__main__":
     pyg.init()
     pyg.font.init()
-    tick = 100
+    tick = 4000
     params = define_parameters()
     params["bayesian_optimization"] = False
-    counter_games = -1
+    counter_games = 0
     agent = Agent(params)
+    weights_filepath = params['weights_path']
+    if params['load_weights']:
+        agent.model.load_weights(weights_filepath)
+        print("Loaded weights")
 
     while counter_games < params['episodes']:
-        weights_filepath = params['weights_path']
-        if params['load_weights']:
-            agent.model.load_weights(weights_filepath)
-
-        if not params['train']:
-                agent.epsilon = 0
-        else:
-            # agent.epsilon is set to give randomness to actions
-            agent.epsilon = 1 - (counter_games * params['epsilon_decay_linear'])
-
         game = Boa()
-        while not game.gameover:
+        counter_steps = 0
+        while not game.gameover and counter_steps < 500:
+            if not params['train']:
+                agent.epsilon = 0
+            else:
+                # agent.epsilon is set to give randomness to actions
+                agent.epsilon = 1 - (counter_games * params['epsilon_decay_linear'])
+
+            counter_steps += 1
             state_old = np.asarray(game.get_features())
 
             if randint(0, 1) < agent.epsilon:
+                final_input = randint(0, 2)
                 final_move = to_categorical(randint(0, 2), num_classes=3)
             else:
                 # predict action based on the old state
                 prediction = agent.model.predict(state_old.reshape((1, 11)))
                 final_move = to_categorical(np.argmax(prediction[0]), num_classes=3)
 
-            if np.array_equal(final_move, [1, 0, 0]):
-                final_move = 1
-            if np.array_equal(final_move, [0, 1, 0]):
-                final_move = 2
-            else:
-                final_move = 0
+                if np.array_equal(final_move, [1, 0, 0]):
+                    final_input = 1
+                if np.array_equal(final_move, [0, 1, 0]):
+                    final_input = 2
+                else:
+                    final_input = 0
 
-            game.step(tick=tick, input=final_move)
+            game.step(tick=tick, input=final_input)
 
             state_new = np.asarray(game.get_features())
             reward = agent.set_reward(game)
@@ -293,6 +296,7 @@ if __name__ == "__main__":
                 agent.remember(state_old, final_move, reward, state_new, game.gameover)
 
         counter_games += 1
+        print("Game: {}, Score: {}".format(counter_games, game.score))
 
         if params['train']:
             agent.replay_new(agent.memory, params['batch_size'])
