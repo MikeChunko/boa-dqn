@@ -9,17 +9,16 @@ import numpy as np
 
 def define_parameters():
     params = dict()
-    params['epsilon_decay_linear'] = 1/75
-    params['learning_rate'] = 0.0005
-    params['first_layer_size'] = 150   # neurons in the first layer
-    params['second_layer_size'] = 150   # neurons in the second layer
-    params['third_layer_size'] = 150    # neurons in the third layer
-    params['episodes'] = 150            
-    params['memory_size'] = 2500
-    params['batch_size'] = 500
-    params['weights_path'] = 'weights/weights.hdf5'
-    params['load_weights'] = False
-    params['train'] = True
+    params["epsilon_decay_linear"] = 1/75
+    params["learning_rate"] = 0.0005
+    params["first_layer_size"] = 15
+    params["second_layer_size"] = 15
+    params["third_layer_size"] = 15
+    params["episodes"] = 150
+    params["memory_size"] = 2500
+    params["batch_size"] = 500
+    params["weights_path"] = "weights.hdf5"
+    params["train"] = True
     return params
 
 
@@ -35,9 +34,7 @@ class Boa:
         self.clock = pyg.time.Clock()
 
         # List containing all segments of the snake
-        self.snake = [(screen_x // 2, screen_y // 2)
-        ]#(screen_x // 2, screen_y // 2 - self.size_y),
-                  #    (screen_x // 2, screen_y // 2 - (2 * self.size_y))]
+        self.snake = [(screen_x // 2, screen_y // 2)]
 
         self.gen_food()
         self.eaten = False
@@ -141,7 +138,7 @@ class Boa:
             food_left, food_forward, food_right, food_behind = f_r, f_d, f_l, f_u
             dir_down = 1
 
-        return [danger_forward, danger_right, danger_left, dir_left, dir_right, dir_up, dir_down, f_l, f_r, f_u, f_d]
+        return [danger_forward, danger_right, danger_left, dir_left, dir_right, dir_up, dir_down, food_forward, food_left, food_right, food_behind]
 
 
     def get_keyboard_input(self):
@@ -192,8 +189,7 @@ class Boa:
 
 
     # input: -1 for keyboard input, 0 for left, 1 for forward, 2 for right
-    # difficulty: 0 for no score decrease from moving, 1 for yes
-    def step(self, tick=15, input=-1, difficulty=0):
+    def step(self, tick=15, input=-1):
         self.delta_score = 0
 
         # Handle actions
@@ -226,12 +222,9 @@ class Boa:
         if self.eaten:
             self.gen_food()
             self.eaten = False
-            self.score += 100
-            self.delta_score += 100
+            self.score += 10
+            self.delta_score += 10
         else:
-            if difficulty == True and self.score > 0:
-                self.score -= 1
-                self.delta_score -= 1
             self.snake.pop(0)
 
         # Draw
@@ -248,25 +241,20 @@ if __name__ == "__main__":
     pyg.font.init()
     tick = 4000
     params = define_parameters()
-    params["bayesian_optimization"] = False
-    counter_games = 0
+    num_games = 0
     agent = Agent(params)
-    weights_filepath = params['weights_path']
-    if params['load_weights']:
-        agent.model.load_weights(weights_filepath)
-        print("Loaded weights")
 
-    while counter_games < params['episodes']:
+    while num_games < params["episodes"]:
         game = Boa()
-        counter_steps = 0
-        while not game.gameover and counter_steps < 500:
-            if not params['train']:
+        num_steps = 0
+        while not game.gameover and num_steps < 500:
+            if not params["train"]:
                 agent.epsilon = 0
             else:
                 # agent.epsilon is set to give randomness to actions
-                agent.epsilon = 1 - (counter_games * params['epsilon_decay_linear'])
+                agent.epsilon = 1 - (num_games * params["epsilon_decay_linear"])
 
-            counter_steps += 1
+            num_steps += 1
             state_old = np.asarray(game.get_features())
 
             if randint(0, 1) < agent.epsilon:
@@ -285,41 +273,20 @@ if __name__ == "__main__":
                     final_input = 0
 
             game.step(tick=tick, input=final_input)
-
             state_new = np.asarray(game.get_features())
-            reward = agent.set_reward(game)
+            reward = game.delta_score
 
-            if params['train']:
+            if params["train"]:
                 # train short memory base on the new action and state
                 agent.train_short_memory(state_old, final_move, reward, state_new, game.gameover)
                 # store the new data into a long term memory
                 agent.remember(state_old, final_move, reward, state_new, game.gameover)
 
-        counter_games += 1
-        print("Game: {}, Score: {}".format(counter_games, game.score))
+        num_games += 1
+        print("Game: {}, Score: {}".format(num_games, game.score))
 
-        if params['train']:
-            agent.replay_new(agent.memory, params['batch_size'])
+        if params["train"]:
+            agent.replay_new(agent.memory, params["batch_size"])
 
-        # Game over state
-        """sentinel = True
-        while sentinel:
-            for event in pyg.event.get():
-                if event.type == pyg.QUIT:
-                    pyg.quit()
-                    quit()
-                if event.type == pyg.KEYDOWN and event.key == pyg.K_r:
-                    sentinel = False
-
-            game.display()
-            textsurface = game.endfont.render("Game Over! Score: {}".format(game.score), True, (255, 255, 255))
-            game.screen.blit(textsurface, textsurface.get_rect(center=(game.screen_x // 2, game.screen_y // 2)))
-            textsurface = game.endfont.render("Press R to restart", True, (255, 255, 255))
-            game.screen.blit(textsurface, textsurface.get_rect(center=(game.screen_x // 2, game.screen_y // 2 + 20)))
-
-
-            pyg.display.update()
-            game.clock.tick(tick)"""
-
-        if params['train']:
-            agent.model.save_weights(params['weights_path'])
+    if params["train"]:
+        agent.model.save_weights(params["weights_path"])
