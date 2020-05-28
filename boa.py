@@ -1,7 +1,7 @@
 # Implementation of Snake in pygame
 import numpy as np
 import pygame as pyg
-from boa_nn import Agent
+from boa_dqn import Agent
 from random import randrange, randint
 from keras.utils import to_categorical
 
@@ -13,7 +13,7 @@ def define_parameters():
     params["first_layer_size"] = 15
     params["second_layer_size"] = 15
     params["third_layer_size"] = 15
-    params["episodes"] = 150
+    params["episodes"] = 200
     params["memory_size"] = 2500
     params["batch_size"] = 500
     params["weights_path"] = "weights.hdf5"
