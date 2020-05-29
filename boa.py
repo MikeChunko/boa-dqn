@@ -8,7 +8,7 @@ from keras.utils import to_categorical
 
 def define_parameters():
     params = dict()
-    params["epsilon_decay_linear"] = 1/75
+    params["epsilon_decay_linear"] = 1 / 75
     params["learning_rate"] = 0.0005
     params["first_layer_size"] = 15
     params["second_layer_size"] = 15
@@ -22,7 +22,7 @@ def define_parameters():
 
 
 class Boa:
-    def __init__(self, screen_x = 300, screen_y = 300):
+    def __init__(self, screen_x=300, screen_y=300):
         self.font, self.endfont = pyg.font.SysFont("Arial", 10), pyg.font.SysFont("Arial", 20)
         self.screen_x, self.screen_y = screen_x, screen_y
         self.screen = pyg.display.set_mode((self.screen_x, self.screen_y))
@@ -43,7 +43,6 @@ class Boa:
         self.dir = 2  # 0 for left, 1 for right, 2 for up, 3 for down
         self.delta_score = 0
 
-
     def gen_food(self):
         # Generate new coords until one doesn't cause a collision
         while True:
@@ -60,7 +59,6 @@ class Boa:
 
         self.food_x, self.food_y = x, y
 
-
     def display(self):
         self.screen.fill((0, 0, 0))
         for x, y in self.snake:
@@ -72,7 +70,6 @@ class Boa:
             pyg.draw.rect(self.screen, self.blue, [i, self.screen_y - self.size_y, self.size_x, self.size_y])
             pyg.draw.rect(self.screen, self.blue, [0, i, self.size_x, self.size_x])
             pyg.draw.rect(self.screen, self.blue, [self.screen_x - self.size_x, i, self.size_x, self.size_y])
-
 
     # Return an int and two tuples
     # The int is the snake's direction
@@ -139,7 +136,6 @@ class Boa:
 
         return [danger_forward, danger_right, danger_left, dir_left, dir_right, dir_up, dir_down, food_forward, food_left, food_right, food_behind]
 
-
     def process_manual_input(self, input):
         if input == 1:  # Forward
             self.process_input(self.dir)
@@ -154,7 +150,6 @@ class Boa:
             else:
                 self.process_input(3 - self.dir)
 
-
     def process_input(self, input):
         if input == 0 and self.d_x <= 0:  # Left
             self.d_x, self.d_y = -self.size_x, 0
@@ -168,7 +163,6 @@ class Boa:
         elif input == 3 and self.d_y >= 0:  # Down
             self.d_x, self.d_y = 0, self.size_y
             self.dir = 3
-
 
     # input: -1 for keyboard input, 0 for left, 1 for forward, 2 for right
     def step(self, tick=15, input=1):
