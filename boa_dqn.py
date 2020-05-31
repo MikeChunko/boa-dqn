@@ -1,6 +1,6 @@
 from keras.optimizers import Adam
 from keras.models import Sequential
-from keras.layers.core import Dense, Dropout
+from keras.layers.core import Dense
 import random
 import numpy as np
 import collections
@@ -19,7 +19,7 @@ class Agent(object):
 
     def network(self):
         model = Sequential()
-        model.add(Dense(output_dim=self.first_layer, activation="relu", input_dim=11))
+        model.add(Dense(output_dim=self.first_layer, activation="relu", input_dim=14))
         model.add(Dense(output_dim=self.second_layer, activation="relu"))
         model.add(Dense(output_dim=self.third_layer, activation="relu"))
         model.add(Dense(output_dim=3, activation="softmax"))
@@ -49,8 +49,8 @@ class Agent(object):
         target = reward
         if not done:
             target = reward + self.gamma * np.amax(
-                self.model.predict(next_state.reshape((1, 11)))[0]
+                self.model.predict(next_state.reshape((1, 14)))[0]
             )
-        target_f = self.model.predict(state.reshape((1, 11)))
+        target_f = self.model.predict(state.reshape((1, 14)))
         target_f[0][np.argmax(action)] = target
-        self.model.fit(state.reshape((1, 11)), target_f, epochs=1, verbose=0)
+        self.model.fit(state.reshape((1, 14)), target_f, epochs=1, verbose=0)

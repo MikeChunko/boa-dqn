@@ -76,8 +76,9 @@ class Boa:
     # The first holds boolean values for whether or not there is immediate danger to the left, forward, and right
     # The second holds boolean values for whether or not there is food to the left, forward, and right
     def get_features(self):
-        b_l = b_r = b_u = b_d = f_u = f_l = f_r = f_d = 0
-        danger_forward = danger_left = danger_right = 0
+        b_l = b_r = b_u = b_d = t_l = t_r = t_u = t_d = f_u = f_l = f_r = f_d = 0
+        wall_forward = wall_left = wall_right = 0
+        tail_forward = tail_left = tail_right = 0
         food_forward = food_left = food_right = food_behind = 0
         dir_left = dir_right = dir_up = dir_down = 0
         x, y = self.snake[-1]
@@ -94,16 +95,16 @@ class Boa:
             b_d = 1
 
         # Segments
-        for x_, y_ in self.snake[:-1]:
+        for x_, y_ in self.snake[:-2]:
             if x_ + self.size_x == x:
-                b_l = 1
+                t_l = 1
             elif x_ - self.size_x == x:
-                b_r = 1
+                t_r = 1
 
             if y_ + self.size_y == y:
-                b_u = 1
+                t_u = 1
             elif y_ - self.size_y == y:
-                b_d = 1
+                t_d = 1
 
         # Food
         if self.food_x > x:
@@ -118,23 +119,27 @@ class Boa:
 
         # Change to left/forward/right
         if self.dir == 0:
-            danger_left, danger_forward, danger_right = b_d, b_l, b_u
+            wall_left, wall_forward, wall_right = b_d, b_l, b_u
+            tail_left, tail_forward, tail_right = t_d, t_l, t_u
             food_left, food_forward, food_right, food_behind = f_d, f_l, f_u, f_r
             dir_left = 1
         elif self.dir == 1:
-            danger_left, danger_forward, danger_right = b_u, b_r, b_d
+            wall_left, wall_forward, wall_right = b_u, b_r, b_d
+            tail_left, tail_forward, tail_right = t_u, t_r, t_d
             food_left, food_forward, food_right, food_behind = f_u, f_r, f_d, f_l
             dir_right = 1
         elif self.dir == 2:
-            danger_left, danger_forward, danger_right = b_l, b_u, b_r
+            wall_left, wall_forward, wall_right = b_l, b_u, b_r
+            tail_left, tail_forward, tail_right = t_l, t_u, t_r
             food_left, food_forward, food_right, food_behind = f_l, f_u, f_r, f_d
             dir_up = 1
         else:
-            danger_left, danger_forward, danger_right = b_r, b_d, b_l
+            wall_left, wall_forward, wall_right = b_r, b_d, b_l
+            tail_left, tail_forward, tail_right = t_r, t_d, t_l
             food_left, food_forward, food_right, food_behind = f_r, f_d, f_l, f_u
             dir_down = 1
 
-        return [danger_forward, danger_right, danger_left, dir_left, dir_right, dir_up, dir_down, food_forward, food_left, food_right, food_behind]
+        return [wall_forward, wall_right, wall_left, tail_forward, tail_right, tail_left, dir_left, dir_right, dir_up, dir_down, food_forward, food_left, food_right, food_behind]
 
     def process_manual_input(self, input):
         if input == 1:  # Forward
@@ -232,9 +237,9 @@ if __name__ == "__main__":
 
             if randint(0, 1) < agent.epsilon:  # Random action
                 final_input = randint(0, 2)
-                final_move = to_categorical(randint(0, 2), num_classes=3)
+                final_move = to_categorical(final_input, num_classes=3)
             else:  # Predict action based on nn
-                prediction = agent.model.predict(state_old.reshape((1, 11)))
+                prediction = agent.model.predict(state_old.reshape((1, 14)))
                 final_move = to_categorical(np.argmax(prediction[0]), num_classes=3)
 
                 if np.array_equal(final_move, [1, 0, 0]):
