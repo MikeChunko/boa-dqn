@@ -15,6 +15,8 @@ class Agent(object):
         self.second_layer = params["second_layer_size"]
         self.third_layer = params["third_layer_size"]
         self.memory = collections.deque(maxlen=params["memory_size"])
+        self.weights_path = params["weights_path"]
+        self.train = params["train"]
         self.model = self.network()
 
     def network(self):
@@ -24,6 +26,9 @@ class Agent(object):
         model.add(Dense(output_dim=self.third_layer, activation="relu"))
         model.add(Dense(output_dim=3, activation="softmax"))
         model.compile(loss="mse", optimizer=Adam(self.learning_rate))
+
+        if not self.train:
+            model.load_weights(self.weights_path)
 
         return model
 
