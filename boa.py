@@ -1,6 +1,7 @@
 # Implementation of Snake in pygame
 import numpy as np
 import pygame as pyg
+import argparse
 from boa_dqn import Agent
 from random import randrange, randint
 from keras.utils import to_categorical
@@ -17,7 +18,7 @@ def define_parameters():
     params["memory_size"] = 2500
     params["batch_size"] = 500
     params["weights_path"] = "weights.hdf5"
-    params["train"] = True
+    params["train"] = False
     return params
 
 
@@ -212,12 +213,30 @@ class Boa:
         self.clock.tick(tick)
 
 
+def str_to_bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Boolean value expected.")
+
+
 if __name__ == "__main__":
     pyg.init()
     pyg.font.init()
     tick = 4000
     params = define_parameters()
     num_games = 0
+
+    parse = argparse.ArgumentParser()
+    parse.add_argument("--draw", type=str_to_bool, default=True, help="whether or not to draw the game")
+    parse.add_argument("--train", type=str_to_bool, default=True, help="whether or not to train")
+    args = parse.parse_args()
+    params["train"] = args.train
+
     agent = Agent(params)
 
     while num_games < params["episodes"]:
