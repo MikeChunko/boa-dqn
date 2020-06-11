@@ -23,14 +23,16 @@ def define_parameters():
 
 
 class Boa:
-    def __init__(self, screen_x=300, screen_y=300):
+    def __init__(self, screen_x=300, screen_y=300, draw=True):
         self.font, self.endfont = pyg.font.SysFont("Arial", 10), pyg.font.SysFont("Arial", 20)
         self.screen_x, self.screen_y = screen_x, screen_y
-        self.screen = pyg.display.set_mode((self.screen_x, self.screen_y))
         self.red, self.green, self.blue = (200, 0, 0), (0, 200, 0), (0, 0, 200)
         self.size_x = self.size_y = 10
-        pyg.display.update()
-        pyg.display.set_caption("Boa")
+        self.draw = draw
+        if self.draw:
+            self.screen = pyg.display.set_mode((self.screen_x, self.screen_y))
+            pyg.display.update()
+            pyg.display.set_caption("Boa")
         self.clock = pyg.time.Clock()
 
         # List containing all segments of the snake
@@ -205,11 +207,12 @@ class Boa:
         self.score += self.delta_score
 
         # Draw
-        self.display()
-        textsurface = self.font.render("Score: {}".format(self.score), False, (255, 255, 255))
-        self.screen.blit(textsurface, (0, 0))
+        if self.draw:
+            self.display()
+            textsurface = self.font.render("Score: {}".format(self.score), False, (255, 255, 255))
+            self.screen.blit(textsurface, (0, 0))
+            pyg.display.update()
 
-        pyg.display.update()
         self.clock.tick(tick)
 
 
@@ -240,7 +243,7 @@ if __name__ == "__main__":
     agent = Agent(params)
 
     while num_games < params["episodes"]:
-        game = Boa()
+        game = Boa(draw=args.draw)
         num_steps = 0
         max_steps = 1000  # Prevent infinite looping with the game
 
