@@ -5,3 +5,5 @@ Applies a Deep Q Network to solve a game of Snake. Currently the DQN is able to 
 The weights determined from training are stored in `weights.hdf5`, though there is currently no way to make the DQN use saved weights.
 
 The implementation of Snake is a modified version of https://github.com/MikeChunko/boa.
+
+To run and train, make sure you have the keras, numpy, and pygame libraries installed, clone the repo, and run `python boa.py`.
