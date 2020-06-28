@@ -47,22 +47,26 @@ class Boa:
         self.delta_score = 0
 
     def gen_food(self):
-        # Generate new coords until one doesn't cause a collision
+        """ Create x,y coords for food.
+            Generate new coords until one doesn't cause a collision. """
         while True:
             x, y = (
                 randrange(self.size_x, self.screen_x - self.size_x, 10),
                 randrange(self.size_y, self.screen_y - self.size_y, 10),
             )
             sentinel = True
+
             for old_x, old_y in self.snake:
                 if sentinel and (old_x == x and old_y == y):
                     sentinel = False
+
             if sentinel:
                 break
 
         self.food_x, self.food_y = x, y
 
     def display(self):
+        """ Display the game. """
         self.screen.fill((0, 0, 0))
         for x, y in self.snake:
             pyg.draw.rect(self.screen, self.green, [x, y, self.size_x, self.size_y])
@@ -74,11 +78,11 @@ class Boa:
             pyg.draw.rect(self.screen, self.blue, [0, i, self.size_x, self.size_x])
             pyg.draw.rect(self.screen, self.blue, [self.screen_x - self.size_x, i, self.size_x, self.size_y])
 
-    # Return an int and two tuples
-    # The int is the snake's direction
-    # The first holds boolean values for whether or not there is immediate danger to the left, forward, and right
-    # The second holds boolean values for whether or not there is food to the left, forward, and right
     def get_features(self):
+        """ Return an int and two tuples.
+            The int is the snake's direction.
+            The first holds boolean values for whether or not there is immediate danger to the left, forward, and right.
+            The second holds boolean values for whether or not there is food to the left, forward, and right. """
         b_l = b_r = b_u = b_d = t_l = t_r = t_u = t_d = f_u = f_l = f_r = f_d = 0
         wall_forward = wall_left = wall_right = 0
         tail_forward = tail_left = tail_right = 0
@@ -145,6 +149,7 @@ class Boa:
         return [wall_forward, wall_right, wall_left, tail_forward, tail_right, tail_left, dir_left, dir_right, dir_up, dir_down, food_forward, food_left, food_right, food_behind]
 
     def process_manual_input(self, input):
+        """ Convert manual input to the expected format. """
         if input == 1:  # Forward
             self.process_input(self.dir)
         elif input == 0:  # Left
@@ -159,6 +164,7 @@ class Boa:
                 self.process_input(3 - self.dir)
 
     def process_input(self, input):
+        """ Handle user input. """
         if input == 0 and self.d_x <= 0:  # Left
             self.d_x, self.d_y = -self.size_x, 0
             self.dir = 0
@@ -172,8 +178,9 @@ class Boa:
             self.d_x, self.d_y = 0, self.size_y
             self.dir = 3
 
-    # input: -1 for keyboard input, 0 for left, 1 for forward, 2 for right
     def step(self, tick=15, input=1):
+        """ Simulate a single game step.
+            input: -1 for keyboard input, 0 for left, 1 for forward, 2 for right. """
         # Handle actions
         self.process_manual_input(input)
         self.delta_score = 0
