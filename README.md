@@ -7,3 +7,5 @@ The weights determined from training are stored in `weights.hdf5`, though there 
 The implementation of Snake is a modified version of https://github.com/MikeChunko/boa.
 
 To run and train, make sure you have the keras, numpy, and pygame libraries installed, clone the repo, and run `python boa.py`.
+
+Run `python boa.py --help` for a complete list of options.
